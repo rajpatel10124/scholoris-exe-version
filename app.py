@@ -37,18 +37,16 @@ import logic
 # ─────────────────────────────────────────────────────────────────────────────
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-change-in-production')
-# Database path: Move to home directory to avoid NTFS permission issues on external drives
-if os.getenv('DATABASE_URL'):
-    # In Cloud, use a persistent SQLite file on the EFS mount to avoid RDS complexity
-    # We store it in static/uploads which is mounted to EFS
-    db_path = os.path.join(app.root_path, 'static', 'uploads', 'scholaris.db')
-    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+# Database setup
+db_url = os.environ.get('DATABASE_URL')
+if db_url:
+    # Use the provided DATABASE_URL (Postgres in Docker)
+    app.config['SQLALCHEMY_DATABASE_URI'] = db_url
 else:
-    # Local development
+    # Local development fallback to SQLite
     home_dir = os.path.expanduser("~")
     scholaris_dir = os.path.join(home_dir, ".scholaris_data")
-    if not os.path.exists(scholaris_dir):
-        os.makedirs(scholaris_dir)
+    os.makedirs(scholaris_dir, exist_ok=True)
     app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{os.path.join(scholaris_dir, "scholaris.db")}'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
