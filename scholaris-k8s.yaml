@@ -1,0 +1,57 @@
+# ---------------------------------------------------------
+# PART 1: THE DEPLOYMENT (How many copies & which image)
+# ---------------------------------------------------------
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: scholaris-deployment
+  labels:
+    app: scholaris
+spec:
+  replicas: 2 # Runs two copies for reliability
+  selector:
+    matchLabels:
+      app: scholaris # Links this controller to the pods below
+  template:
+    metadata:
+      labels:
+        app: scholaris # The "sticker" on each container
+    spec:
+      containers:
+      - name: flask-app
+        image: rajpatel1202/scholaris:v2 # Replace with your DockerHub ID
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 5000 # The port your Flask app listens on
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "200m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        # 10 LPA Concept: Health Checks
+        # This tells K8s: "Wait 10 seconds, then check if the app is alive"
+        livenessProbe:
+          httpGet:
+            path: / # Or your status route
+            port: 5000
+          initialDelaySeconds: 10
+          periodSeconds: 5
+
+---
+# ---------------------------------------------------------
+# PART 2: THE SERVICE (The entry point/URL)
+# ---------------------------------------------------------
+apiVersion: v1
+kind: Service
+metadata:
+  name: scholaris-service
+spec:
+  type: LoadBalancer # Gives you an external URL in Minikube/AWS
+  selector:
+    app: scholaris # Directs traffic to pods with this label
+  ports:
+    - protocol: TCP
+      port: 80        # Port the user visits (HTTP)
+      targetPort: 5000 # Port where the Flask app is running

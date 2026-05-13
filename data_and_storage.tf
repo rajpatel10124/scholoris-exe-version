@@ -1,0 +1,1 @@
+# This file has been moved to storage.tf to fix the duplicate resource error.

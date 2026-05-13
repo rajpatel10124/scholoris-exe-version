@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Scholaris – AWS Architecture</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: #f0f4f8; display: flex; justify-content: center; align-items: flex-start; padding: 30px; }
+  .page { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.10); max-width: 1200px; width: 100%; }
+  h1 { text-align: center; font-size: 22px; color: #1a1a2e; margin-bottom: 4px; }
+  .subtitle { text-align: center; color: #666; font-size: 13px; margin-bottom: 30px; }
+
+  /* Layout */
+  .diagram { display: flex; gap: 16px; align-items: flex-start; }
+  .left-col { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 90px; padding-top: 60px; }
+  .right-col { display: flex; flex-direction: column; gap: 12px; min-width: 160px; padding-top: 10px; }
+
+  /* AWS Cloud wrapper */
+  .aws-cloud { flex: 1; border: 2px solid #FF9900; border-radius: 16px; padding: 16px; background: #FFFDF7; position: relative; }
+  .aws-cloud-label { position: absolute; top: -13px; left: 16px; background: white; padding: 2px 10px; font-size: 12px; font-weight: 700; color: #FF9900; border: 1px solid #FF9900; border-radius: 4px; }
+
+  /* VPC box */
+  .vpc { border: 2px dashed #8C4FFF; border-radius: 12px; padding: 14px; background: #FAF6FF; position: relative; margin-top: 8px; }
+  .vpc-label { position: absolute; top: -12px; left: 12px; background: #FAF6FF; padding: 2px 8px; font-size: 11px; font-weight: 700; color: #8C4FFF; border: 1px dashed #8C4FFF; border-radius: 4px; }
+
+  /* IGW bar */
+  .igw-bar { background: #E8F4FD; border: 1.5px solid #1a9af7; border-radius: 8px; padding: 8px 16px; display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .igw-bar .icon { font-size: 20px; }
+  .igw-bar .info { font-size: 12px; }
+  .igw-bar .info strong { display: block; color: #0073bb; font-size: 13px; }
+
+  /* ALB bar */
+  .alb-bar { background: #FFF3E0; border: 1.5px solid #FF9900; border-radius: 8px; padding: 10px 16px; display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .alb-bar .info strong { display: block; color: #c45000; font-size: 13px; }
+  .alb-bar .info { font-size: 12px; color: #555; }
+
+  /* Subnets */
+  .subnets { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+  .subnet { border: 2px dashed #2ea44f; border-radius: 10px; padding: 12px; background: #f0fff4; position: relative; }
+  .subnet-label { position: absolute; top: -11px; left: 10px; background: #f0fff4; padding: 1px 7px; font-size: 10px; font-weight: 700; color: #2ea44f; border: 1px dashed #2ea44f; border-radius: 4px; }
+
+  /* EC2 */
+  .ec2-box { background: white; border: 1.5px solid #E8763A; border-radius: 8px; padding: 10px 12px; margin-top: 8px; }
+  .ec2-box .ec2-title { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 12px; color: #E8763A; margin-bottom: 6px; }
+  .ec2-box ul { list-style: none; padding-left: 4px; }
+  .ec2-box ul li { font-size: 11px; color: #444; padding: 1px 0; }
+  .ec2-box ul li::before { content: "• "; color: #E8763A; }
+  .ec2-ghost { border-style: dashed; opacity: 0.6; }
+  .ec2-ghost .ec2-title { color: #999; }
+
+  /* EFS */
+  .efs-bar { background: #F0FFF4; border: 1.5px solid #2ea44f; border-radius: 8px; padding: 10px 16px; display: flex; align-items: center; gap: 10px; }
+  .efs-bar .info strong { display: block; color: #1a7f37; font-size: 13px; }
+  .efs-bar .info { font-size: 12px; color: #555; }
+
+  /* Route table */
+  .route-table { background: white; border: 1px solid #ccc; border-radius: 6px; font-size: 11px; overflow: hidden; margin-top: 10px; }
+  .route-table table { width: 100%; border-collapse: collapse; }
+  .route-table th { background: #f5f5f5; padding: 4px 8px; text-align: left; font-size: 10px; color: #555; border-bottom: 1px solid #ddd; }
+  .route-table td { padding: 4px 8px; border-bottom: 1px solid #eee; color: #333; }
+  .route-table-title { background: #e8eaf6; padding: 4px 8px; font-weight: 700; font-size: 10px; color: #3949ab; }
+
+  /* Right col service cards */
+  .svc-card { border: 1.5px solid #ddd; border-radius: 8px; padding: 10px 12px; background: white; }
+  .svc-card .svc-title { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 12px; margin-bottom: 4px; }
+  .svc-card p { font-size: 11px; color: #555; }
+
+  /* SG badges */
+  .sg-section { margin-top: 14px; }
+  .sg-title { font-size: 11px; font-weight: 700; color: #555; margin-bottom: 6px; }
+  .sg-badge { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 6px; background: #fff8f0; border: 1px solid #FFB74D; border-radius: 6px; padding: 6px 10px; font-size: 11px; }
+  .sg-name { font-weight: 700; color: #E65100; min-width: 60px; }
+
+  /* Left col items */
+  .user-box { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .user-box .icon { font-size: 36px; }
+  .user-box .label { font-size: 11px; text-align: center; color: #333; font-weight: 600; }
+
+  /* Arrows */
+  .arrow { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .arrow-line { width: 2px; height: 30px; background: #888; margin: 0 auto; }
+  .arrow-head { font-size: 14px; color: #888; }
+  .arrow-label { font-size: 10px; color: #666; font-weight: 600; background: #eee; padding: 1px 5px; border-radius: 3px; }
+
+  .flow-badge { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; background: #1a9af7; color: white; border-radius: 50%; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+  .flow-row { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #444; margin: 3px 0; }
+
+  .tag { display: inline-block; background: #e3f2fd; color: #0d47a1; border-radius: 3px; padding: 1px 5px; font-size: 10px; font-weight: 600; margin-right: 3px; }
+  .tag-green { background: #e8f5e9; color: #1b5e20; }
+  .tag-orange { background: #fff3e0; color: #e65100; }
+</style>
+</head>
+<body>
+<div class="page">
+  <h1>⚡ Scholaris – AWS Cloud Architecture</h1>
+  <p class="subtitle">Terraform-provisioned infrastructure · Region: us-east-1 · Auto Scaling · EFS-backed storage</p>
+
+  <div class="diagram">
+
+    <!-- LEFT: User + flow -->
+    <div class="left-col">
+      <div class="user-box">
+        <div class="icon">👩‍🏫</div>
+        <div class="label">Teacher<br>(Browser)</div>
+      </div>
+      <div class="arrow">
+        <div class="arrow-line"></div>
+        <div class="arrow-head">↓</div>
+      </div>
+      <div class="user-box">
+        <div class="icon">🌐</div>
+        <div class="label">Internet</div>
+      </div>
+      <div class="arrow">
+        <div class="arrow-line"></div>
+        <div class="arrow-head">↓</div>
+      </div>
+      <div style="font-size:10px;color:#888;text-align:center;">HTTP :80</div>
+      <div class="arrow">
+        <div class="arrow-line"></div>
+        <div class="arrow-head">↓</div>
+      </div>
+      <div style="font-size:10px;color:#888;text-align:center;margin-top:8px;">
+        <div class="flow-row"><span class="flow-badge">1</span> User sends request</div>
+        <div class="flow-row"><span class="flow-badge">2</span> ALB routes to EC2</div>
+        <div class="flow-row"><span class="flow-badge">3</span> EC2 reads/writes EFS</div>
+        <div class="flow-row"><span class="flow-badge">4</span> Logs → CloudWatch</div>
+      </div>
+    </div>
+
+    <!-- CENTER: AWS Cloud -->
+    <div class="aws-cloud">
+      <div class="aws-cloud-label">☁️ AWS Cloud — us-east-1</div>
+
+      <!-- VPC -->
+      <div class="vpc">
+        <div class="vpc-label">🔷 VPC: scholaris-vpc · 10.0.0.0/16</div>
+
+        <!-- IGW -->
+        <div class="igw-bar">
+          <div class="icon">🚪</div>
+          <div class="info">
+            <strong>Internet Gateway (IGW)</strong>
+            Attached to scholaris-vpc · Routes 0.0.0.0/0 to internet
+          </div>
+        </div>
+
+        <!-- ALB -->
+        <div class="alb-bar">
+          <div class="icon" style="font-size:22px;">⚖️</div>
+          <div class="info">
+            <strong>Application Load Balancer — scholaris-alb</strong>
+            Internet-facing · Port 80 HTTP · Spans both AZs · Idle timeout: 300s · Health check: GET /health
+            <span class="tag tag-orange">alb-sg: TCP 80 open</span>
+          </div>
+        </div>
+
+        <!-- Subnets -->
+        <div class="subnets">
+
+          <!-- Subnet A -->
+          <div class="subnet">
+            <div class="subnet-label">🟢 Public Subnet A · 10.0.1.0/24 · us-east-1a</div>
+            <div class="ec2-box" style="margin-top:14px;">
+              <div class="ec2-title"><span>🖥️</span> EC2 (Active Instance)</div>
+              <ul>
+                <li>Ubuntu 24.04 (AMI: hvm-ssd-gp3)</li>
+                <li>Docker container: scholaris-app</li>
+                <li>Port mapping: 80 → 5000</li>
+                <li>EFS mounted: /static/uploads</li>
+                <li>4 GB swap (OOM protection)</li>
+                <li>IAM profile: scholaris_ec2_role</li>
+                <li>Pulls code from GitHub on boot</li>
+                <li>25 GB EBS gp3 root volume</li>
+              </ul>
+              <div style="margin-top:6px;">
+                <span class="tag">ec2-sg: SSH 22</span>
+                <span class="tag">HTTP 80 from ALB</span>
+              </div>
+            </div>
+            <!-- EFS mount target A -->
+            <div style="font-size:10px;color:#2ea44f;margin-top:8px;text-align:center;">📎 EFS Mount Target A (NFS 2049)</div>
+          </div>
+
+          <!-- Subnet B -->
+          <div class="subnet">
+            <div class="subnet-label">🟢 Public Subnet B · 10.0.2.0/24 · us-east-1b</div>
+            <div class="ec2-box ec2-ghost" style="margin-top:14px;">
+              <div class="ec2-title"><span>🖥️</span> EC2 (Scale-out)</div>
+              <ul>
+                <li>Same Launch Template</li>
+                <li>Launched when ASG scales out</li>
+                <li>max_size = 2 instances</li>
+                <li>Rolling refresh strategy</li>
+              </ul>
+            </div>
+            <div style="font-size:10px;color:#2ea44f;margin-top:8px;text-align:center;">📎 EFS Mount Target B (NFS 2049)</div>
+          </div>
+        </div>
+
+        <!-- ASG label -->
+        <div style="font-size:11px;color:#8C4FFF;text-align:center;margin-bottom:10px;font-weight:600;">
+          🔄 Auto Scaling Group: desired=1 · min=1 · max=2 · Rolling instance refresh
+        </div>
+
+        <!-- EFS -->
+        <div class="efs-bar">
+          <div class="icon" style="font-size:22px;">🗄️</div>
+          <div class="info">
+            <strong>Amazon EFS — scholaris-efs</strong>
+            Shared NFS file storage · Mounted at /static/uploads on every EC2 · Persistent across restarts &amp; scale events
+            <span class="tag tag-green">efs-sg: NFS 2049 from EC2 only</span>
+          </div>
+        </div>
+
+        <!-- Route table -->
+        <div class="route-table" style="margin-top:12px;max-width:360px;">
+          <div class="route-table-title">🗺️ Route Table — public_rt (associated to both subnets)</div>
+          <table>
+            <tr><th>Destination</th><th>Target</th></tr>
+            <tr><td>10.0.0.0/16</td><td>local</td></tr>
+            <tr><td>0.0.0.0/0</td><td>igw (Internet Gateway)</td></tr>
+          </table>
+        </div>
+
+        <!-- SGs -->
+        <div class="sg-section">
+          <div class="sg-title">🔒 Security Groups</div>
+          <div class="sg-badge"><span class="sg-name">alb-sg</span><span>Inbound: TCP 80 from 0.0.0.0/0 · Outbound: all</span></div>
+          <div class="sg-badge"><span class="sg-name">ec2-sg</span><span>Inbound: TCP 22 from 0.0.0.0/0 (SSH) · TCP 80 from alb-sg only · Outbound: all</span></div>
+          <div class="sg-badge"><span class="sg-name">efs-sg</span><span>Inbound: TCP 2049 (NFS) from ec2-sg only</span></div>
+          <div class="sg-badge"><span class="sg-name">rds-sg</span><span>Inbound: TCP 5432 (PostgreSQL) from ec2-sg only</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Supporting services -->
+    <div class="right-col">
+
+      <div class="svc-card">
+        <div class="svc-title">📊 CloudWatch Logs</div>
+        <p>Log group:<br><code>/aws/ec2/scholaris-app</code><br>Docker log driver: awslogs<br>Region: us-east-1</p>
+      </div>
+
+      <div class="svc-card">
+        <div class="svc-title">🔐 IAM</div>
+        <p>Role: <strong>scholaris_ec2_role</strong><br>Policy: CloudWatchAgentServerPolicy<br>Profile: scholaris_instance_profile<br>Allows EC2 to push logs</p>
+      </div>
+
+      <div class="svc-card">
+        <div class="svc-title">🐙 GitHub</div>
+        <p>Repo: <strong>rajpatel10124/<br>guided-project-1</strong><br>Auto-cloned on launch<br><code>git pull</code> on every boot</p>
+      </div>
+
+      <div class="svc-card">
+        <div class="svc-title">🐳 Docker</div>
+        <p>Image: <strong>scholaris-app</strong><br>Built on EC2 from Dockerfile<br>Restart policy: always<br>Env: SQLite, SMTP mail</p>
+      </div>
+
+      <div class="svc-card" style="border-color:#FF9900;">
+        <div class="svc-title" style="color:#c45000;">🏗️ Terraform Resources</div>
+        <p style="font-size:10px;line-height:1.7;">
+          aws_vpc · aws_internet_gateway<br>
+          aws_subnet (×2)<br>
+          aws_route_table + associations<br>
+          aws_lb · aws_lb_target_group<br>
+          aws_lb_listener<br>
+          aws_launch_template<br>
+          aws_autoscaling_group<br>
+          aws_efs_file_system<br>
+          aws_efs_mount_target (×2)<br>
+          aws_security_group (×4)<br>
+          aws_iam_role + policy + profile
+        </p>
+      </div>
+
+    </div>
+  </div>
+</div>
+</body>
+</html>

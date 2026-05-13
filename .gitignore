@@ -1,0 +1,9 @@
+offline_models/
+static/uploads/
+.env
+*.pem
+__pycache__/
+venv/
+.venv/
+.terraform/
+terraform.tfstate*

@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Scholaris — Bulk Plagiarism Checker{% endblock %}</title>
+    <meta name="description" content="Upload documents, detect plagiarism instantly. Bulk file comparison with AI-powered analysis and detailed heatmaps.">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --ink:       #0f0f11;
+            --ink-soft:  #3a3a44;
+            --ink-mute:  #7a7a8a;
+            --surface:   #f5f5f7;
+            --surface-2: #ebebee;
+            --surface-3: #e1e1e6;
+            --white:     #ffffff;
+            --accent:    #5b5ef4;
+            --accent-2:  #8b8ffa;
+            --accent-3:  #e8e8ff;
+            --success:   #16a34a;
+            --success-bg:#dcfce7;
+            --danger:    #dc2626;
+            --danger-bg: #fee2e2;
+            --warning:   #d97706;
+            --warning-bg:#fef3c7;
+            --review:    #7c3aed;
+            --review-bg: #ede9fe;
+            --border:    rgba(0,0,0,0.08);
+            --radius-sm: 8px;
+            --radius:    14px;
+            --radius-lg: 22px;
+            --shadow-sm: 0 1px 4px rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04);
+            --shadow:    0 4px 16px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04);
+            --shadow-lg: 0 12px 40px rgba(0,0,0,0.12), 0 0 0 1px rgba(0,0,0,0.05);
+            --font-body: 'DM Sans', sans-serif;
+            --font-serif:'Instrument Serif', serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --nav-h:     64px;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+
+        body {
+            font-family: var(--font-body);
+            background: var(--surface);
+            color: var(--ink);
+            font-size: 15px;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ── NAVBAR ── */
+        .navbar {
+            height: var(--nav-h);
+            background: rgba(255,255,255,0.88);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border);
+            padding: 0;
+        }
+        .navbar-brand {
+            font-family: var(--font-serif);
+            font-size: 1.35rem;
+            color: var(--ink) !important;
+            letter-spacing: -0.3px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            text-decoration: none;
+        }
+        .brand-dot {
+            width: 8px; height: 8px;
+            background: var(--accent);
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .nav-pill {
+            font-size: 0.84rem;
+            font-weight: 500;
+            color: var(--ink-mute);
+            padding: 6px 14px;
+            border-radius: 40px;
+            transition: all 0.18s;
+            text-decoration: none;
+        }
+        .nav-pill:hover { color: var(--ink); background: var(--surface-2); }
+        .nav-pill.active { color: var(--accent); background: var(--accent-3); }
+
+        /* ── FLASH ── */
+        .flash-container {
+            position: fixed; top: 76px; right: 20px;
+            z-index: 1070; width: 360px;
+        }
+        .flash-toast {
+            background: var(--white);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-lg);
+            padding: 14px 18px;
+            margin-bottom: 10px;
+            display: flex; align-items: flex-start; gap: 12px;
+            animation: slideIn 0.28s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .flash-icon {
+            width: 32px; height: 32px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1rem; flex-shrink: 0;
+        }
+        .flash-icon.success { background: var(--success-bg); color: var(--success); }
+        .flash-icon.danger  { background: var(--danger-bg);  color: var(--danger); }
+        .flash-icon.warning { background: var(--warning-bg); color: var(--warning); }
+        .flash-icon.info    { background: var(--accent-3);   color: var(--accent); }
+        .flash-msg { font-size: 0.875rem; font-weight: 500; color: var(--ink); line-height: 1.4; }
+        .flash-close {
+            margin-left: auto; background: none; border: none;
+            color: var(--ink-mute); cursor: pointer; padding: 0; font-size: 1rem;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(20px); }
+            to   { opacity: 1; transform: translateX(0); }
+        }
+
+        /* ── BUTTONS ── */
+        .btn-primary {
+            background: var(--accent); border-color: var(--accent);
+            color: #fff; font-weight: 600; font-size: 0.875rem;
+            border-radius: var(--radius-sm); padding: 9px 20px;
+            transition: all 0.18s; box-shadow: 0 2px 8px rgba(91,94,244,0.3);
+        }
+        .btn-primary:hover { background: #4a4de0; border-color: #4a4de0; box-shadow: 0 4px 14px rgba(91,94,244,0.4); transform: translateY(-1px); }
+        .btn-outline-primary { border-color: var(--accent); color: var(--accent); font-weight: 600; font-size: 0.875rem; border-radius: var(--radius-sm); padding: 8px 20px; transition: all 0.18s; }
+        .btn-outline-primary:hover { background: var(--accent); color: #fff; }
+        .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--ink-soft); font-size: 0.875rem; font-weight: 500; border-radius: var(--radius-sm); padding: 8px 20px; transition: all 0.18s; text-decoration: none; }
+        .btn-ghost:hover { background: var(--surface-2); border-color: var(--surface-3); }
+        .btn-sm { padding: 6px 14px !important; font-size: 0.8rem !important; }
+
+        /* ── CARDS ── */
+        .card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); }
+        .card:hover { box-shadow: var(--shadow); }
+
+        /* ── FORM CONTROLS ── */
+        .form-control, .form-select {
+            background: var(--surface);
+            border: 1.5px solid var(--surface-3);
+            border-radius: var(--radius-sm);
+            color: var(--ink);
+            font-size: 0.9rem;
+            padding: 10px 14px;
+            transition: all 0.18s;
+        }
+        .form-control:focus, .form-select:focus {
+            background: var(--white);
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(91,94,244,0.12);
+        }
+        .form-control::placeholder { color: var(--ink-mute); }
+        .form-label { font-size: 0.83rem; font-weight: 600; color: var(--ink-soft); margin-bottom: 6px; }
+
+        /* ── BADGES ── */
+        .status-badge {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: 0.75rem; font-weight: 600;
+            padding: 4px 10px; border-radius: 40px;
+        }
+        .status-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+        .status-badge.accepted { color: var(--success); background: var(--success-bg); }
+        .status-badge.rejected { color: var(--danger); background: var(--danger-bg); }
+        .status-badge.manual_review, .status-badge.review { color: var(--review); background: var(--review-bg); }
+
+        /* ── BREADCRUMB ── */
+        .breadcrumb { font-size: 0.8rem; margin-bottom: 6px; }
+        .breadcrumb-item a { color: var(--ink-mute); text-decoration: none; }
+        .breadcrumb-item a:hover { color: var(--accent); }
+        .breadcrumb-item.active { color: var(--ink-soft); }
+
+        /* ── DROPDOWN ── */
+        .dropdown-menu { border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-lg); padding: 6px; }
+        .dropdown-item { border-radius: var(--radius-sm); font-size: 0.875rem; padding: 8px 12px; color: var(--ink-soft); }
+        .dropdown-item:hover { background: var(--surface); color: var(--ink); }
+
+        /* ── UTILS ── */
+        .text-accent { color: var(--accent); }
+        .font-mono { font-family: var(--font-mono); }
+        .fade-up { animation: fadeUp 0.35s ease both; }
+        @keyframes fadeUp { from { opacity:0; transform: translateY(12px); } to { opacity:1; transform: translateY(0); } }
+        .stagger-1 { animation-delay: 0.05s; }
+        .stagger-2 { animation-delay: 0.10s; }
+        .stagger-3 { animation-delay: 0.15s; }
+
+        .bounce-in { animation: bounceIn 0.4s ease both; }
+        @keyframes bounceIn { 0% { opacity:0; transform: scale(0.3); } 50% { opacity:1; transform: scale(1.05); } 70% { transform: scale(0.9); } 100% { opacity:1; transform: scale(1); } }
+
+        .loading-dots::after {
+            content: '';
+            animation: loadingDots 1.4s infinite ease-in-out;
+        }
+        @keyframes loadingDots {
+            0%, 20% { content: ''; }
+            40% { content: '.'; }
+            60% { content: '..'; }
+            80%, 100% { content: '...'; }
+        }
+
+        /* ── FOOTER ── */
+        footer { background: var(--white); border-top: 1px solid var(--border); padding: 28px 0; margin-top: 64px; }
+        footer p { font-size: 0.8rem; color: var(--ink-mute); margin: 0; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 99px; }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar sticky-top">
+    <div class="container d-flex align-items-center gap-1" style="height:var(--nav-h);">
+        <a class="navbar-brand me-4" href="{{ url_for('index') }}">
+            <span class="brand-dot"></span> Scholaris
+        </a>
+        <div class="d-flex align-items-center gap-1 me-auto">
+            <a class="nav-pill" href="{{ url_for('new_scan') }}"><i class="bi bi-upload me-1"></i>New Scan</a>
+            <a class="nav-pill" href="{{ url_for('history') }}"><i class="bi bi-clock-history me-1"></i>History</a>
+        </div>
+    </div>
+</nav>
+
+<!-- FLASH TOASTS -->
+<div class="flash-container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div class="flash-toast" id="toast-{{ loop.index }}">
+                <div class="flash-icon {{ category if category != 'message' else 'info' }}">
+                    {% if category == 'success' %}<i class="bi bi-check-lg"></i>
+                    {% elif category == 'danger' %}<i class="bi bi-exclamation-lg"></i>
+                    {% elif category == 'warning' %}<i class="bi bi-exclamation-triangle"></i>
+                    {% else %}<i class="bi bi-info"></i>{% endif %}
+                </div>
+                <div class="flash-msg">{{ message }}</div>
+                <button class="flash-close" onclick="this.closest('.flash-toast').remove()">&times;</button>
+            </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+</div>
+
+<main style="min-height: calc(100vh - var(--nav-h) - 120px);">
+    {% block content %}{% endblock %}
+</main>
+
+<footer>
+    <div class="container d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <p>&copy; 2026 Scholaris · Bulk Plagiarism Detection</p>
+    </div>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Auto-dismiss toasts
+    setTimeout(() => {
+        document.querySelectorAll('.flash-toast').forEach(t => {
+            t.style.animation = 'slideIn 0.25s ease reverse';
+            setTimeout(() => t.remove(), 250);
+        });
+    }, 5000);
+</script>
+{% block extra_scripts %}{% endblock %}
+</body>
+</html>

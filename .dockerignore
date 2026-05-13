@@ -1,0 +1,28 @@
+# Exclude environment variables and secrets
+.env
+.env.example
+*.pem
+
+# Exclude virtual environments
+venv/
+.venv/
+env/
+
+# Exclude git metadata
+.git/
+.gitignore
+
+# Exclude Python artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Exclude platform specific files
+.DS_Store
+
+# Exclude infrastructure files
+.terraform/
+*.tfstate
+*.tfstate.*
+.terraform.lock.hcl

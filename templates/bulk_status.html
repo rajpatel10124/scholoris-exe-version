@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}Scan in Progress — Scholaris{% endblock %}
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <div class="mb-3">
+                            <div class="spinner-border text-accent" role="status" style="width: 3rem; height: 3rem;">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
+                        <h2 class="h4 fw-bold mb-2">Plagiarism Scan in Progress</h2>
+                        <p class="text-muted">
+                            Processing <strong>{{ run.total_files }}</strong> files
+                            {% if run.title %} for <strong>{{ run.title }}</strong>{% endif %}
+                        </p>
+                    </div>
+
+                    {% set total = run.total_files | default(0) %}
+                    {% set processed = run.processed_count | default(0) %}
+                    {% set percentage = ((processed / total) * 100) | round | int if total > 0 else 0 %}
+
+                    <div class="progress mb-4" style="height: 30px; border-radius: 16px; overflow: hidden; background: var(--surface);">
+                        <div class="progress-bar progress-bar-striped progress-bar-animated"
+                             role="progressbar"
+                             style="width: {{ percentage }}%; background: var(--accent); font-weight: 600; font-size: 0.9rem;"
+                             aria-valuenow="{{ percentage }}"
+                             aria-valuemin="0"
+                             aria-valuemax="100">
+                            {{ percentage }}%
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between mb-3 px-2">
+                        <span class="badge" style="background: var(--accent-3); color: var(--accent); padding: 6px 12px;">
+                            <i class="bi bi-file-earmark-text me-1"></i>
+                            Processed: {{ run.processed_count }} / {{ run.total_files }}
+                        </span>
+                        <span class="badge" style="background: var(--warning-bg); color: var(--warning); padding: 6px 12px;">
+                            <i class="bi bi-clock me-1"></i>
+                            {{ (run.status or 'pending')|capitalize }}
+                        </span>
+                    </div>
+
+                    <div class="p-4 rounded-3 mt-3" style="background: var(--surface); border: 1px solid var(--border);">
+                        <h6 class="fw-bold mb-2"><i class="bi bi-info-circle text-accent me-2"></i>What's happening?</h6>
+                        <ul class="text-muted small mb-0" style="line-height: 1.8;">
+                            <li>The system is performing AI-powered text extraction and analysis.</li>
+                            <li>All files are compared for peer-to-peer similarity and external patterns.</li>
+                            <li><strong>You can safely leave this page.</strong> The scan continues in the background.</li>
+                            <li>Results will appear automatically when complete.</li>
+                        </ul>
+                    </div>
+
+                    <div class="text-center mt-4">
+                        <div class="spinner-grow spinner-grow-sm text-accent" role="status"></div>
+                        <span class="text-muted small ms-2">Auto-refreshing...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Socket.io for real-time progress -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.js"></script>
+<script>
+    const socket = io();
+    const runId = {{ run.id }};
+    const roomName = "bulk_" + runId;
+
+    socket.on('connect', () => {
+        console.log("Connected to WebSocket");
+        socket.emit('join', { room: roomName });
+    });
+
+    socket.on('bulk_progress', (data) => {
+        if (data.run_id == runId) {
+            const pct = Math.round(data.percentage);
+            const progressBar = document.querySelector('.progress-bar');
+            progressBar.style.width = pct + '%';
+            progressBar.setAttribute('aria-valuenow', pct);
+            progressBar.innerText = pct + '%';
+
+            if (pct >= 100 || data.message.toLowerCase().includes('complete')) {
+                setTimeout(() => { window.location.reload(); }, 1500);
+            }
+        }
+    });
+
+    // Fallback refresh
+    setTimeout(function() { window.location.reload(); }, 15000);
+</script>
+
+<style>
+    .progress-bar { transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+</style>
+{% endblock %}
