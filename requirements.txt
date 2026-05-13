@@ -186,4 +186,5 @@ psycopg2-binary==2.9.9
 Flask-Mail==0.10.0
 flask-socketio==5.5.1
 eventlet>=0.40.3
+gevent>=24.2.1
 deep-translator==1.11.4

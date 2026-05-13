@@ -38,7 +38,7 @@ COPY requirements.txt .
 # Upgrade pip then install all deps
 # Note: torch CPU-only wheel is much smaller — swap index-url if GPU is needed
 RUN pip install --upgrade pip && \
-    pip install --no-cache-dir eventlet gunicorn && \
+    pip install --no-cache-dir gevent gunicorn && \
     pip install --no-cache-dir \
         --extra-index-url https://download.pytorch.org/whl/cpu \
         -r requirements.txt
@@ -58,11 +58,11 @@ ENV PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK=True
 
 EXPOSE 5000
 
-# Run with Gunicorn using Eventlet for real-time WebSockets
+# Run with Gunicorn using gevent for concurrency
 # -w 1: Only 1 worker is recommended when loading heavy AI models to save memory
 # --timeout: High timeout to handle large bulk checks (60+ files)
 CMD ["gunicorn", \
-     "-k", "eventlet", \
+     "-k", "gevent", \
      "--bind", "0.0.0.0:5000", \
      "--workers", "1", \
      "--timeout", "3600", \
