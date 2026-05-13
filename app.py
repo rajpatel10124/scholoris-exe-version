@@ -32,22 +32,12 @@ from models import db, BulkCheckRun, BulkCheckResult
 import logic
 
 
-# ─────────────────────────────────────────────────────────────────────────────
-# APP SETUP
-# ─────────────────────────────────────────────────────────────────────────────
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-change-in-production')
-# Database setup
-db_url = os.environ.get('DATABASE_URL')
-if db_url:
-    # Use the provided DATABASE_URL (Postgres in Docker)
-    app.config['SQLALCHEMY_DATABASE_URI'] = db_url
-else:
-    # Local development fallback to SQLite
-    home_dir = os.path.expanduser("~")
-    scholaris_dir = os.path.join(home_dir, ".scholaris_data")
-    os.makedirs(scholaris_dir, exist_ok=True)
-    app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{os.path.join(scholaris_dir, "scholaris.db")}'
+
+# Database setup (Simple SQLite)
+db_path = os.path.join(app.root_path, 'static', 'uploads', 'scholaris.db')
+app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads')
@@ -642,25 +632,13 @@ def init_db_and_models(app_obj):
         retry_delay = 5
         for i in range(max_retries):
             try:
-                if "postgresql" in app_obj.config['SQLALCHEMY_DATABASE_URI']:
-                    try:
-                        from sqlalchemy import text
-                        db.session.execute(text("GRANT ALL ON SCHEMA public TO scholaris_admin"))
-                        db.session.commit()
-                    except Exception:
-                        pass
+                # Create tables (This works for both SQLite and Postgres)
                 db.create_all()
-                # Raw SQL Fallback
-                if "postgresql" in app_obj.config['SQLALCHEMY_DATABASE_URI']:
-                    from sqlalchemy import text
-                    db.session.execute(text("""
-                        CREATE TABLE IF NOT EXISTS bulk_check_run (id SERIAL PRIMARY KEY, title VARCHAR(255), total_files INTEGER, processed_count INTEGER, status VARCHAR(50), threshold INTEGER, accepted INTEGER, rejected INTEGER, manual_review INTEGER, elapsed_sec FLOAT, created_at TIMESTAMP WITHOUT TIME ZONE);
-                        CREATE TABLE IF NOT EXISTS bulk_check_result (id SERIAL PRIMARY KEY, run_id INTEGER REFERENCES bulk_check_run(id) ON DELETE CASCADE, filename VARCHAR(255), verdict VARCHAR(50), reason VARCHAR(255), peer_score FLOAT, external_score FLOAT, ocr_confidence FLOAT, is_digital BOOLEAN, analysis_text TEXT, peer_details TEXT, sentence_map TEXT, created_at TIMESTAMP WITHOUT TIME ZONE);
-                    """))
-                    db.session.commit()
+                db.session.commit()
                 print("[SCHOLARIS] Database schema verified/created.")
                 break
             except Exception as e:
+                db.session.rollback()  # CRITICAL: Fixes the "InFailedSqlTransaction" error
                 print(f"[SCHOLARIS] DB connection retry {i+1}/{max_retries}: {e}")
                 time.sleep(retry_delay)
         
