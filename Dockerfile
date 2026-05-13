@@ -38,6 +38,7 @@ COPY requirements.txt .
 # Upgrade pip then install all deps
 # Note: torch CPU-only wheel is much smaller — swap index-url if GPU is needed
 RUN pip install --upgrade pip && \
+    pip install --no-cache-dir eventlet gunicorn && \
     pip install --no-cache-dir \
         --extra-index-url https://download.pytorch.org/whl/cpu \
         -r requirements.txt
