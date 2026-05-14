@@ -98,6 +98,14 @@ except Exception:
     _HAS_PDFPLUMBER = False
 
 try:
+    import nltk
+    from nltk.stem import PorterStemmer
+    from nltk.corpus import stopwords as _sw
+    _HAS_NLTK = True
+except Exception:
+    _HAS_NLTK = False
+
+try:
     from pypdf import PdfReader as _PdfReader
     _HAS_PYPDF = True
 except Exception:
@@ -1702,6 +1710,15 @@ def warmup_models():
         _get_ai_detect_model()
         # Pre-load SentenceTransformer (Layer 2)
         _get_st_model()
+        if _HAS_NLTK:
+            import nltk
+            for pkg in ['punkt', 'stopwords']:
+                try:
+                    nltk.data.find(f'tokenizers/{pkg}' if pkg=='punkt' else f'corpora/{pkg}')
+                except Exception:
+                    print(f"[logic] Downloading NLTK {pkg}...")
+                    nltk.download(pkg, quiet=True)
+
         print("[logic] Model warmup complete. System is ready.")
     except Exception as e:
         print(f"[logic] Warmup error (ignorable): {e}")
@@ -2170,7 +2187,7 @@ def _bulk_peer_comparison(text, other_submissions, ocr_confidence=None, precompu
             oe = precomputed_embeddings.get(oc)
             if oe is not None:
                 doc_sim = float(np.dot(curr_emb, oe))
-                if doc_sim < 0.60: # relaxed filter
+                if doc_sim < 0.35: # relaxed filter (was 0.60)
                     continue
 
         # ── Step 2: Compute individual signals ─────────────────────────────
