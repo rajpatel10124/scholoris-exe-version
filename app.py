@@ -50,7 +50,7 @@ nltk.data.path.append(_nltk_data_dir)
 
 from flask import (Flask, render_template, redirect, url_for, request,
                    flash, jsonify, abort, Response, current_app)
-from flask_socketio import SocketIO, emit
+from flask_socketio import SocketIO, emit, join_room, leave_room
 from werkzeug.utils import secure_filename
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -91,6 +91,20 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Initialize SocketIO
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+
+@socketio.on('join')
+def on_join(data):
+    room = data.get('room')
+    if room:
+        join_room(room)
+        print(f"[SocketIO] Client joined room: {room}", flush=True)
+
+@socketio.on('leave')
+def on_leave(data):
+    room = data.get('room')
+    if room:
+        leave_room(room)
+        print(f"[SocketIO] Client left room: {room}", flush=True)
 
 # Database
 db.init_app(app)
@@ -206,12 +220,14 @@ def new_scan():
         db.session.add(bulk_run)
         db.session.commit()
 
-        # Start background scan
-        threading.Thread(
-            target=run_bulk_check_task,
-            args=(current_app._get_current_object(), bulk_run.id, temp_dir, threshold),
-            daemon=True,
-        ).start()
+        # Start background scan using SocketIO background task runner
+        socketio.start_background_task(
+            run_bulk_check_task,
+            app,
+            bulk_run.id,
+            temp_dir,
+            threshold
+        )
 
         return redirect(url_for('scan_status', run_id=bulk_run.id))
 

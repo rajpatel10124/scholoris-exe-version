@@ -2,6 +2,7 @@
 models.py — Pure Python Mock Database for Standalone Bulk Plagiarism Detection
 =============================================================================
 Zero SQLAlchemy, zero SQLite. Stores and retrieves records in pure JSON files.
+Includes full dirty-tracking via in-memory identity map.
 """
 import os
 import sys
@@ -153,6 +154,10 @@ BulkCheckResult.query = ModelQueryDescriptor()
 _pending_adds = []
 _pending_deletes = []
 
+# Global Identity Map
+_loaded_runs = {}
+_loaded_results = {}
+
 def _load_all_runs():
     runs = []
     run_file = os.path.join(DATA_DIR, 'runs.json')
@@ -161,15 +166,25 @@ def _load_all_runs():
             with open(run_file, 'r') as f:
                 data = json.load(f)
                 for r in data:
-                    runs.append(BulkCheckRun.from_dict(r))
+                    rid = r['id']
+                    if rid in _loaded_runs:
+                        obj = _loaded_runs[rid]
+                    else:
+                        obj = BulkCheckRun.from_dict(r)
+                        _loaded_runs[rid] = obj
+                    runs.append(obj)
         except Exception as e:
             print(f"[MockDB] Error loading runs: {e}")
-    # Merge with pending additions that have not been written to file yet
+
+    # Merge with pending additions
     for x in _pending_adds:
         if isinstance(x, BulkCheckRun):
+            if x.id not in _loaded_runs:
+                _loaded_runs[x.id] = x
             if not any(r.id == x.id for r in runs):
                 runs.append(x)
-    # Remove pending deletions
+
+    # Filter out pending deletions
     runs = [r for r in runs if not any(d.id == r.id and isinstance(d, BulkCheckRun) for d in _pending_deletes)]
     return runs
 
@@ -181,15 +196,25 @@ def _load_all_results():
             with open(res_file, 'r') as f:
                 data = json.load(f)
                 for r in data:
-                    results.append(BulkCheckResult.from_dict(r))
+                    rid = r['id']
+                    if rid in _loaded_results:
+                        obj = _loaded_results[rid]
+                    else:
+                        obj = BulkCheckResult.from_dict(r)
+                        _loaded_results[rid] = obj
+                    results.append(obj)
         except Exception as e:
             print(f"[MockDB] Error loading results: {e}")
+
     # Merge with pending additions
     for x in _pending_adds:
         if isinstance(x, BulkCheckResult):
+            if x.id not in _loaded_results:
+                _loaded_results[x.id] = x
             if not any(r.id == x.id for r in results):
                 results.append(x)
-    # Remove pending deletions
+
+    # Filter out pending deletions
     results = [r for r in results if not any(d.id == r.id and isinstance(d, BulkCheckResult) for d in _pending_deletes)]
     return results
 
@@ -234,36 +259,35 @@ class MockSession:
 
     def commit(self):
         global _pending_adds, _pending_deletes
-        runs = _load_all_runs()
-        results = _load_all_results()
-
-        # Apply additions/updates
+        
+        # Apply additions to loaded maps
         for x in _pending_adds:
             if isinstance(x, BulkCheckRun):
-                idx = next((i for i, r in enumerate(runs) if r.id == x.id), -1)
-                if idx >= 0:
-                    runs[idx] = x
-                else:
-                    runs.append(x)
+                _loaded_runs[x.id] = x
             elif isinstance(x, BulkCheckResult):
-                idx = next((i for i, r in enumerate(results) if r.id == x.id), -1)
-                if idx >= 0:
-                    results[idx] = x
-                else:
-                    results.append(x)
-
+                _loaded_results[x.id] = x
+                
         # Apply deletions
         for x in _pending_deletes:
             if isinstance(x, BulkCheckRun):
-                runs = [r for r in runs if r.id != x.id]
+                if x.id in _loaded_runs:
+                    del _loaded_runs[x.id]
                 # Cascade delete results
-                results = [r for r in results if r.run_id != x.id]
+                to_del = [rid for rid, r in _loaded_results.items() if r.run_id == x.id]
+                for rid in to_del:
+                    del _loaded_results[rid]
             elif isinstance(x, BulkCheckResult):
-                results = [r for r in results if r.id != x.id]
-
-        _save_runs(runs)
-        _save_results(results)
-
+                if x.id in _loaded_results:
+                    del _loaded_results[x.id]
+                    
+        # Load all from disk first to merge everything
+        all_runs = _load_all_runs()
+        all_results = _load_all_results()
+        
+        # Now, save the exact contents of the identity maps back to disk
+        _save_runs(all_runs)
+        _save_results(all_results)
+        
         _pending_adds.clear()
         _pending_deletes.clear()
 

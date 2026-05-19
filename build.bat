@@ -145,7 +145,7 @@ echo =================================================================
 echo [SUCCESS] BUILD SUCCESSFUL! SCHOLARIS DESKTOP IS READY!
 echo =================================================================
 echo.
-echo PORTABLE DIRECTORY: %CD%\dist\Scholaris
+echo PORTABLE DIRECTORY: %CD%\dist_build\Scholaris
 echo.
 echo Inside this directory:
 echo   - Scholaris.exe             : Double-click to launch the app instantly.
@@ -155,7 +155,7 @@ echo                                 on any other Windows computer!
 echo.
 echo One-Click Desktop Icon has been placed on your Desktop.
 echo.
-echo You can zip and share the entire 'dist\Scholaris' directory with any
+echo You can zip and share the entire 'dist_build\Scholaris' directory with any
 echo Windows user. They just need to extract and click 'Create_Desktop_Shortcut.bat'!
 echo =================================================================
 echo.

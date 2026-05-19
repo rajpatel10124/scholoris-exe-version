@@ -35,11 +35,11 @@
                     </div>
 
                     <div class="d-flex justify-content-between mb-3 px-2">
-                        <span class="badge" style="background: var(--accent-3); color: var(--accent); padding: 6px 12px;">
+                        <span class="badge" id="processed-badge" style="background: var(--accent-3); color: var(--accent); padding: 6px 12px;">
                             <i class="bi bi-file-earmark-text me-1"></i>
                             Processed: {{ run.processed_count }} / {{ run.total_files }}
                         </span>
-                        <span class="badge" style="background: var(--warning-bg); color: var(--warning); padding: 6px 12px;">
+                        <span class="badge" id="status-badge" style="background: var(--warning-bg); color: var(--warning); padding: 6px 12px;">
                             <i class="bi bi-clock me-1"></i>
                             {{ (run.status or 'pending')|capitalize }}
                         </span>
@@ -57,7 +57,7 @@
 
                     <div class="text-center mt-4">
                         <div class="spinner-grow spinner-grow-sm text-accent" role="status"></div>
-                        <span class="text-muted small ms-2">Auto-refreshing...</span>
+                        <span class="text-muted small ms-2" id="status-msg">Auto-refreshing...</span>
                     </div>
                 </div>
             </div>
@@ -66,7 +66,7 @@
 </div>
 
 <!-- Socket.io for real-time progress -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.4/socket.io.js"></script>
+<script src="{{ url_for('static', filename='js/socket.io.js') }}"></script>
 <script>
     const socket = io();
     const runId = {{ run.id }};
@@ -85,14 +85,37 @@
             progressBar.setAttribute('aria-valuenow', pct);
             progressBar.innerText = pct + '%';
 
+            // Real-time badge & message updates!
+            const processedBadge = document.getElementById('processed-badge');
+            if (processedBadge) {
+                processedBadge.innerHTML = `<i class="bi bi-file-earmark-text me-1"></i>Processed: ${data.processed} / ${data.total}`;
+            }
+
+            const statusMsg = document.getElementById('status-msg');
+            if (statusMsg) {
+                statusMsg.innerText = data.message;
+            }
+
+            const statusBadge = document.getElementById('status-badge');
+            if (statusBadge && pct > 0) {
+                statusBadge.innerHTML = `<i class="bi bi-clock me-1"></i>Processing`;
+                statusBadge.style.background = 'var(--accent-3)';
+                statusBadge.style.color = 'var(--accent)';
+            }
+
             if (pct >= 100 || data.message.toLowerCase().includes('complete')) {
+                if (statusBadge) {
+                    statusBadge.innerHTML = `<i class="bi bi-check-circle me-1"></i>Complete`;
+                    statusBadge.style.background = 'var(--success-bg)';
+                    statusBadge.style.color = 'var(--success)';
+                }
                 setTimeout(() => { window.location.reload(); }, 1500);
             }
         }
     });
 
     // Fallback refresh
-    setTimeout(function() { window.location.reload(); }, 15000);
+    setTimeout(function() { window.location.reload(); }, 20000);
 </script>
 
 <style>
