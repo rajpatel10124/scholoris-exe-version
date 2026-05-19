@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scholaris Software System Logic</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #030712;
+            --panel: #111827;
+            --accent: #6366f1;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --text: #f3f4f6;
+            --text-muted: #9ca3af;
+            --border: rgba(255,255,255,0.1);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            padding: 50px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 60px;
+            max-width: 800px;
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+            background: linear-gradient(135deg, #fff 0%, #6366f1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: var(--text-muted);
+            font-size: 1.2rem;
+            font-weight: 300;
+        }
+
+        .system-container {
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .stage {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            gap: 30px;
+            align-items: center;
+            background: var(--panel);
+            padding: 30px;
+            border-radius: 24px;
+            border: 1px solid var(--border);
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .stage:hover {
+            border-color: var(--accent);
+            transform: scale(1.01);
+            box-shadow: 0 0 40px rgba(99, 102, 241, 0.1);
+        }
+
+        .stage-meta {
+            text-align: right;
+            border-right: 2px solid var(--accent);
+            padding-right: 20px;
+        }
+
+        .stage-num {
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 800;
+            color: var(--accent);
+            font-size: 0.9rem;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .stage-name {
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+
+        .component-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .component {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            padding: 20px;
+            border-radius: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .component h3 {
+            font-size: 0.95rem;
+            color: var(--accent);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .component p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.5;
+        }
+
+        .tech-stack {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 5px;
+        }
+
+        .badge {
+            font-size: 0.65rem;
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--accent);
+            padding: 2px 8px;
+            border-radius: 5px;
+            font-family: 'JetBrains Mono', monospace;
+            border: 1px solid rgba(99, 102, 241, 0.2);
+        }
+
+        /* Connecting Line */
+        .stage::after {
+            content: '↓';
+            position: absolute;
+            bottom: -35px;
+            left: 50%;
+            color: var(--accent);
+            font-size: 1.5rem;
+            opacity: 0.5;
+        }
+        .stage:last-child::after { display: none; }
+
+        .analysis-engine {
+            background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(17, 24, 39, 1) 100%);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+        }
+
+        .logic-gate {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 12px;
+            border: 1px dashed var(--border);
+        }
+
+        .gate-item {
+            text-align: center;
+        }
+
+        .gate-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            display: block;
+        }
+
+        .gate-val {
+            font-weight: 700;
+            color: var(--success);
+            font-size: 0.9rem;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>Software Architecture</h1>
+        <p>Scholaris Core Logic, Analysis Pipelines & Data Flow</p>
+        <p style="font-size: 0.9rem; margin-top: 10px; color: var(--danger); font-weight: bold;">[ NO CLOUD INFRASTRUCTURE INCLUDED ]</p>
+    </div>
+
+    <div class="system-container">
+
+        <!-- Stage 1: Ingestion -->
+        <div class="stage">
+            <div class="stage-meta">
+                <span class="stage-num">MODULE 01</span>
+                <span class="stage-name">Ingestion &<br>Extraction</span>
+            </div>
+            <div class="component-grid">
+                <div class="component">
+                    <h3>⚡ Task Orchestrator</h3>
+                    <p>Handles asynchronous batch processing using gevent monkey-patching.</p>
+                    <div class="tech-stack">
+                        <span class="badge">ThreadPool</span>
+                        <span class="badge">SocketIO</span>
+                    </div>
+                </div>
+                <div class="component">
+                    <h3>📂 Archive Handler</h3>
+                    <p>Recursive ZIP/RAR extraction with security path validation.</p>
+                    <div class="tech-stack">
+                        <span class="badge">ZipFile</span>
+                        <span class="badge">shutil</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stage 2: OCR Fallback Chain -->
+        <div class="stage">
+            <div class="stage-meta">
+                <span class="stage-num">MODULE 02</span>
+                <span class="stage-name">Multi-Model<br>OCR Engine</span>
+            </div>
+            <div class="component-grid">
+                <div class="component">
+                    <h3>📸 EasyOCR (Visual)</h3>
+                    <p>Deep learning CRAFT detector for real-world photos & skewed text.</p>
+                </div>
+                <div class="component">
+                    <h3>📝 TrOCR (Handwriting)</h3>
+                    <p>Vision-Transformer based model for academic handwriting detection.</p>
+                </div>
+                <div class="component">
+                    <h3>⚙️ Tesseract 5</h3>
+                    <p>CLI Subprocess baseline for standard document scanning.</p>
+                    <div class="tech-stack"><span class="badge">OOM Isolated</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stage 3: Analysis Engine -->
+        <div class="stage analysis-engine">
+            <div class="stage-meta">
+                <span class="stage-num">CORE MODULE</span>
+                <span class="stage-name">Fuzzed<br>Consensus</span>
+            </div>
+            <div class="component-grid">
+                <div class="component" style="grid-column: span 2;">
+                    <h3>🧠 Layered Similarity Engine</h3>
+                    <p>Combines structural, semantic, and authorship signals into a unified verdict.</p>
+                    
+                    <div class="logic-gate">
+                        <div class="gate-item">
+                            <span class="gate-label">Structural</span>
+                            <span class="gate-val">Winnowing</span>
+                        </div>
+                        <div class="gate-item">
+                            <span class="gate-label">Semantic</span>
+                            <span class="gate-val">mpnet-v2</span>
+                        </div>
+                        <div class="gate-item">
+                            <span class="gate-label">Vector DB</span>
+                            <span class="gate-val">FAISS</span>
+                        </div>
+                        <div class="gate-item">
+                            <span class="gate-label">Code</span>
+                            <span class="gate-val">AST-Normal</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="component">
+                    <h3>🕵️ AI DNA Search</h3>
+                    <p>Perplexity & Burstiness analysis to detect LLM-generated content.</p>
+                    <div class="tech-stack"><span class="badge">GPT-2 Backbone</span></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stage 4: Post-Processing -->
+        <div class="stage">
+            <div class="stage-meta">
+                <span class="stage-num">MODULE 04</span>
+                <span class="stage-name">Contextual<br>Refinement</span>
+            </div>
+            <div class="component-grid">
+                <div class="component">
+                    <h3>📉 Noise Filter</h3>
+                    <p>Corpus-level TF-IDF to suppress common lab terms across batch.</p>
+                </div>
+                <div class="component">
+                    <h3>🗺️ Heatmap Gen</h3>
+                    <p>Sentence-level diffing for visual plagiarism proof.</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <footer style="margin-top: 60px; color: var(--text-muted); font-size: 0.8rem; letter-spacing: 2px;">
+        &copy; 2026 SCHOLARIS ENGINE · SOFTWARE SYSTEM BLUEPRINT
+    </footer>
+
+</body>
+</html>

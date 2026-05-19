@@ -5,13 +5,16 @@ No users, no login, no courses, no assignments.
 Upload files → Run plagiarism scan → View results with threshold filter.
 Like iLovePDF but for plagiarism detection.
 """
-from gevent import monkey
-monkey.patch_all()
+import os
+import sys
+
+# Pure standard threading used for simple cross-platform compatibility
 
 import json
 import uuid
 import datetime
 import os
+import sys
 import time
 import tempfile
 import traceback
@@ -22,6 +25,29 @@ import csv
 import io
 import re
 
+# ─────────────────────────────────────────────────────────────────────────────
+# OFFLINE MODELS CONFIGURATION (Must happen before importing logic or model modules)
+# ─────────────────────────────────────────────────────────────────────────────
+if getattr(sys, 'frozen', False):
+    # Packaged executable directory
+    _exe_dir = os.path.dirname(sys.executable)
+    _models_dir = os.path.join(_exe_dir, 'offline_models')
+    if not os.path.exists(_models_dir):
+        _models_dir = os.path.join(sys._MEIPASS, 'offline_models')
+else:
+    # Development directory
+    _base_dir = os.path.dirname(os.path.abspath(__file__))
+    _models_dir = os.path.join(_base_dir, 'offline_models')
+
+# Set env variables to force offline model loading
+os.environ['HF_HOME'] = _models_dir
+os.environ['SENTENCE_TRANSFORMERS_HOME'] = _models_dir
+
+import nltk
+_nltk_data_dir = os.path.join(_models_dir, 'nltk_data')
+os.makedirs(_nltk_data_dir, exist_ok=True)
+nltk.data.path.append(_nltk_data_dir)
+
 from flask import (Flask, render_template, redirect, url_for, request,
                    flash, jsonify, abort, Response, current_app)
 from flask_socketio import SocketIO, emit
@@ -31,22 +57,40 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from models import db, BulkCheckRun, BulkCheckResult
 import logic
 
-
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-key-change-in-production')
 
-# Database setup (Simple SQLite)
-db_path = os.path.join(app.root_path, 'static', 'uploads', 'scholaris.db')
-app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+# ─────────────────────────────────────────────────────────────────────────────
+# PERSISTENT WRITABLE DATA DIRECTORY (For DB and Uploads)
+# ─────────────────────────────────────────────────────────────────────────────
+def get_persistent_data_dir():
+    if getattr(sys, 'frozen', False):
+        exe_dir = os.path.dirname(sys.executable)
+        # Test write access in the executable folder (portable mode)
+        test_file = os.path.join(exe_dir, '.scholaris_write_test')
+        try:
+            with open(test_file, 'w') as f:
+                f.write('check')
+            os.remove(test_file)
+            return exe_dir
+        except Exception:
+            # Fallback to user home directory if restricted (e.g. Program Files)
+            return os.path.join(os.path.expanduser('~'), 'ScholarisData')
+    else:
+        return os.path.dirname(os.path.abspath(__file__))
 
+data_dir = get_persistent_data_dir()
+db_path = os.path.join(data_dir, 'scholaris.db')
+
+app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'static', 'uploads')
+app.config['UPLOAD_FOLDER'] = os.path.join(data_dir, 'uploads')
 app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024 * 1024  # 1 GB
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 # Initialize SocketIO
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='gevent')
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 # Database
 db.init_app(app)
@@ -600,6 +644,12 @@ def run_bulk_check_task(app, run_id, temp_dir, threshold):
                     db.session.commit()
             except Exception:
                 pass
+            # Write to a file so we can see the error in the packaged desktop app
+            try:
+                with open("scholaris_scan_error.txt", "w") as f:
+                    f.write(traceback.format_exc())
+            except Exception:
+                pass
             print(f"[Bulk-BG] Task #{run_id} failed: {e}", flush=True)
             traceback.print_exc()
         finally:
@@ -620,21 +670,7 @@ def run_bulk_check_task(app, run_id, temp_dir, threshold):
 # Background Initialization: Ensures we pass health checks immediately while loading models/DB
 def init_db_and_models(app_obj):
     with app_obj.app_context():
-        max_retries = 20
-        retry_delay = 5
-        for i in range(max_retries):
-            try:
-                # Create tables (This works for both SQLite and Postgres)
-                db.create_all()
-                db.session.commit()
-                print("[SCHOLARIS] Database schema verified/created.")
-                break
-            except Exception as e:
-                db.session.rollback()  # CRITICAL: Fixes the "InFailedSqlTransaction" error
-                print(f"[SCHOLARIS] DB connection retry {i+1}/{max_retries}: {e}")
-                time.sleep(retry_delay)
-        
-        # Also warmup models in this background thread
+        # Warmup models in this background thread
         try:
             logic.warmup_models()
         except Exception as e:
@@ -645,16 +681,7 @@ threading.Thread(target=init_db_and_models, args=(app,), daemon=True).start()
 
 if __name__ == '__main__':
     with app.app_context():
-        # --- AUTO CLEANUP FOR REFACTOR ---
-        old_db = os.path.join(app.root_path, 'scholaris.db')
-        old_db_instance = os.path.join(app.root_path, 'instance', 'scholaris.db')
-        for db_file in [old_db, old_db_instance]:
-            if os.path.exists(db_file):
-                try:
-                    os.remove(db_file)
-                    print(f"[Cleanup] Deleted old database schema -> {db_file}")
-                except Exception as e:
-                    pass
+        pass
 
         # Delete unused templates
         templates_dir = os.path.join(app.root_path, 'templates')

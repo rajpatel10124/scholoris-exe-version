@@ -1,9 +1,36 @@
+# Build and Packaging
 offline_models/
-static/uploads/
-.env
-*.pem
+dist_build/
+build_new/
+requirements_win.txt
 __pycache__/
+*.pyc
+
+# Virtual Environments
 venv/
 .venv/
+
+# Environment and Credentials
+.env
+*.pem
+
+# Local Data and Uploads
+static/uploads/
+uploads/
+scans_data/
+scholaris.db
+instance/
+
+# Obsolete / Temporary scripts
+first.py
+fix_runner.py
+upgrade_to_admin.py
+cleanup.py
+
+# Terraform
 .terraform/
 terraform.tfstate*
+
+# IDEs
+.vscode/
+.idea/
