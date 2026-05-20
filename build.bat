@@ -104,7 +104,7 @@ rd /s /q build_new >nul 2>&1
 rd /s /q dist_build >nul 2>&1
 echo.
 echo Building may take 1-3 minutes. Please wait...
-python -m PyInstaller --name "Scholaris" --noconsole --clean --noconfirm --distpath "dist_build" --workpath "build_new" --hidden-import="nltk" --hidden-import="sentence_transformers" --hidden-import="flask_socketio" --hidden-import="engineio.async_drivers.threading" --hidden-import="faiss" --hidden-import="pdfplumber" --hidden-import="vector_service" --hidden-import="webview" --hidden-import="sklearn" --hidden-import="rapidfuzz" --add-data "templates;templates" --add-data "static;static" desktop.py
+python -m PyInstaller --name "Scholaris" --noconsole --clean --noconfirm --distpath "dist_build" --workpath "build_new" --collect-all "sklearn" --collect-all "sentence_transformers" --collect-all "nltk" --hidden-import="flask_socketio" --hidden-import="engineio.async_drivers.threading" --hidden-import="faiss" --hidden-import="pdfplumber" --hidden-import="vector_service" --hidden-import="webview" --hidden-import="rapidfuzz" --add-data "templates;templates" --add-data "static;static" desktop.py
 if %errorlevel% neq 0 (
     color 0C
     echo [ERROR] PyInstaller build failed! Please check the output logs above.
