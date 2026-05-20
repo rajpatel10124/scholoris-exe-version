@@ -125,9 +125,16 @@ if %errorlevel% neq 0 (
     exit /b %errorlevel%
 )
 
+:: 6b. Copy critical VC++ Runtime DLLs for 100% portability on clean PCs
+echo Copying system C++ runtime DLLs for native offline side-loading...
+copy "C:\Windows\System32\vcruntime140.dll" "dist_build\Scholaris\" /Y >nul 2>&1
+copy "C:\Windows\System32\vcruntime140_1.dll" "dist_build\Scholaris\" /Y >nul 2>&1
+copy "C:\Windows\System32\msvcp140.dll" "dist_build\Scholaris\" /Y >nul 2>&1
+copy "C:\Windows\System32\concrt140.dll" "dist_build\Scholaris\" /Y >nul 2>&1
+
 :: 7. Copy the shortcut helper to the output folder
 copy "Create_Desktop_Shortcut.bat" "dist_build\Scholaris\Create_Desktop_Shortcut.bat" /Y >nul
-echo [OK] Portability structure verified.
+echo [OK] Portability structure and side-loaded DLLs verified.
 echo.
 
 :: 8. Automatically create the Desktop Shortcut for the developer

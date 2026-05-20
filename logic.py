@@ -208,7 +208,11 @@ def _lazy_nltk_init():
 _HAS_SKLEARN = True
 _HAS_ST = True
 _HAS_CROSS = True
-_HAS_FAISS = True
+try:
+    import faiss as _faiss
+    _HAS_FAISS = True
+except Exception:
+    _HAS_FAISS = False
 _HAS_NLTK = True
 _HAS_RF = True
 
